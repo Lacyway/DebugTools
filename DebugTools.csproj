@@ -30,6 +30,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Release\**" />
+    <EmbeddedResource Remove="Release\**" />
+    <None Remove="Release\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Utils\Files\debugtools.bundle" />
   </ItemGroup>
 
@@ -141,6 +147,31 @@
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(Configuration)' == 'Debug'">
 		<Exec Command="xcopy /Y &quot;$(TargetPath)&quot; &quot;D:\Games\SPT\Dev411\BepInEx\plugins\&quot;" />
 		<Exec Command="xcopy /Y &quot;$(TargetDir)$(TargetName).pdb&quot; &quot;D:\Games\SPT\Dev411\BepInEx\plugins\&quot;" />
+	</Target>
+
+	<Target Name="ZipReleaseBuild" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+		<PropertyGroup>
+			<ReleaseDir>$(ProjectDir)Release</ReleaseDir>
+			<TempStagingDir>$(IntermediateOutputPath)ZipStaging</TempStagingDir>
+			<PluginTargetDir>$(TempStagingDir)\BepInEx\plugins\$(ProjectName)</PluginTargetDir>
+			<ZipFilePath>$(ReleaseDir)\$(ProjectName).zip</ZipFilePath>
+		</PropertyGroup>
+
+		<RemoveDir Directories="$(TempStagingDir)" />
+		<Delete Files="$(ZipFilePath)" />
+
+		<MakeDir Directories="$(PluginTargetDir)" />
+		<MakeDir Directories="$(ReleaseDir)" />
+
+		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginTargetDir)" />
+
+		<Copy SourceFiles="$(ProjectDir)LICENSE.md" DestinationFolder="$(PluginTargetDir)" Condition="Exists('$(ProjectDir)LICENSE.md')" />
+
+		<ZipDirectory SourceDirectory="$(TempStagingDir)" DestinationFile="$(ZipFilePath)" Overwrite="true" />
+
+		<RemoveDir Directories="$(TempStagingDir)" />
+
+		<Message Text="Successfully packaged release zip: $(ZipFilePath)" Importance="high" />
 	</Target>
 
 </Project>
