@@ -7,7 +7,7 @@ This is not meant to be installed on a normal installation as it might directly 
 
 ### **Features**
 
-- Free cam
+- Free cam (**F9** in raid by default)
 - Database Viewer (**F10** by default)
 	- High performance
 	- Does not lock the game while searching
