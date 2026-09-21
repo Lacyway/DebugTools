@@ -39,6 +39,8 @@ This is not meant to be installed on a normal installation as it might directly 
 ### **Requests**
 You are free to make requests of features to be added, and I might consider doing so.
 
+### Support me
+
 You can support me on Ko-Fi
 
 [Click](https://ko-fi.com/lacyway)
