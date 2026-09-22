@@ -18,7 +18,7 @@ namespace DebugTools;
 [BepInIncompatibility("com.fika.core")] // free cam collides
 internal sealed class DT_Plugin : BaseUnityPlugin
 {
-    public const string PluginVersion = "1.0.0";
+    public const string PluginVersion = "1.1.0";
 
     public static ConfigEntry<bool> AZERTYMode { get; set; }
     public static ConfigEntry<bool> ShowOverlay { get; set; }
@@ -29,6 +29,7 @@ internal sealed class DT_Plugin : BaseUnityPlugin
     public static ConfigEntry<bool> LogInfo { get; set; }
     public static ConfigEntry<bool> LogWarning { get; set; }
     public static ConfigEntry<bool> LogError { get; set; }
+    public static ConfigEntry<bool> CatchBotErrors { get; set; }
 
     public static InputTree InputTree
     {
@@ -85,6 +86,8 @@ internal sealed class DT_Plugin : BaseUnityPlugin
             false, new ConfigDescription("If Unity.LogWarning should be logged to BepInEx."));
         LogError = Config.Bind("Logging", "Log Error",
             false, new ConfigDescription("If Unity.LogError should be logged to BepInEx."));
+        CatchBotErrors = Config.Bind("Bots", "Catch Bot Errors",
+            false, new ConfigDescription("If bot activation errors should be caught and logged during initialization."));
 
         new PlayerOwner_vmethod_0_Patch().Enable();
         new LocalGame_Stop_Patch().Enable();
@@ -93,6 +96,7 @@ internal sealed class DT_Plugin : BaseUnityPlugin
         new TasksExtensions_HandleFinishedTask_Patch2().Enable();
         new PlayerCameraController_LateUpdate_Transpiler().Enable();
         new ClientBackendSession_SetBotSettings_Patch().Enable();
+        new BotOwner_method_10_Patch().Enable();
 
         InfoLogPatches.EnableAll();
         WarningLogPatches.EnableAll();

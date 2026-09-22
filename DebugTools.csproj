@@ -30,8 +30,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="References\**" />
     <Compile Remove="Release\**" />
+    <EmbeddedResource Remove="References\**" />
     <EmbeddedResource Remove="Release\**" />
+    <None Remove="References\**" />
     <None Remove="Release\**" />
   </ItemGroup>
 

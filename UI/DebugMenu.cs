@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using Comfort.Common;
 using DebugTools;
 using DebugTools.Utils;
@@ -52,7 +54,7 @@ public sealed class DebugMenu : InputNode
         List<string> options = [.. Enum.GetNames(typeof(WildSpawnType))];
         SpawnAIDropdown.AddOptions(options);
         SpawnAIButton.onClick.AddListener(SpawnAI);
-        AddTooltip(SpawnAIButton.gameObject, "Spawns X amount of the selected AI");
+        AddTooltip(SpawnAIButton.gameObject, "Spawns X amount of the selected AI\nHold SHIFT to quick spawn, bypassing spawn limits and spawning it in front of the main player");
 
         DamageLimbDropdown.ClearOptions();
         List<string> options2 = [.. Enum.GetNames(typeof(EBodyPart))];
@@ -126,10 +128,10 @@ public sealed class DebugMenu : InputNode
             LogError("Invalid type");
             return;
         }
-        SpawnNPC(selectedWildSpawn, amount);
+        _ = SpawnNPC(selectedWildSpawn, amount, Input.GetKey(KeyCode.LeftShift));
     }
 
-    private void SpawnNPC(WildSpawnType wildSpawnType, int amount)
+    private async Task SpawnNPC(WildSpawnType wildSpawnType, int amount, bool quick)
     {
         if (amount <= 0)
         {
@@ -167,7 +169,32 @@ public sealed class DebugMenu : InputNode
             return;
         }
 
-        botController.BotSpawner.ActivateBotsByWave(newBotData);
+        if (quick)
+        {
+            var player = Utilities.MainPlayer;
+            var pos = player.PlayerColliderPointOnCenterAxis(0f) + (player.Velocity * Time.deltaTime) + (player.Transform.forward * 1.5f);
+            var botCreator = (BotCreatorClient)botController.BotSpawner._botCreator;
+            var closestZone = botController.BotSpawner.GetClosestZone(pos, out var dist);
+            var spawnPointMarker = closestZone.SpawnPointMarkers.RandomElement();
+            IGetProfileData getProfileData = new GetProfileDataParams(newBotData.Side, newBotData.WildSpawnType,
+                newBotData.Difficulty, newBotData.Time, null, newBotData.KeepZoneOnSpawn);
+            var botCreationData = await BotCreationData.Create(getProfileData, botCreator,
+                newBotData.BotsCount, botController.BotSpawner);
+            botCreationData._positions.Add(new PositionNote(pos, spawnPointMarker.SpawnPoint.CorePointId, false));
+
+
+            foreach (var profile in botCreationData.Profiles)
+            {
+                await botCreator.ActivateBot(botCreationData, closestZone, false,
+                    botController.BotSpawner.GetGroupAndSetEnemies,
+                    (botOwner) => botController.BotSpawner.ActivateBotCallback(botOwner, botCreationData, null, false, Stopwatch.StartNew()),
+                    default);
+            }
+        }
+        else
+        {
+            await botController.BotSpawner.ActivateBotsByWave(newBotData);
+        }
         LogInfo($"SpawnNPC completed, requested {amount} of {wildSpawnType}");
     }
 
