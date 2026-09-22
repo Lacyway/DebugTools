@@ -23,6 +23,8 @@ This is not meant to be installed on a normal installation as it might directly 
 	- Destroy limb
 	- Bring all AI
 	- Despawn all AI
+	- Change time of day
+	- Change weather
 - Console commands
 	- All of the debug menu tools included as commands
 	- RecreateBackend (reloads the backend in the main menu)
