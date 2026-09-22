@@ -32,11 +32,16 @@ This is not meant to be installed on a normal installation as it might directly 
 	- Clear (clears console output)
 - Options to show all **Unity.Debug** logs
 
-<img src="https://i.imgur.com/qa4mTM4.gif" width="720" alt="Preview1">
+![Preview1](https://i.imgur.com/YZJY7ne.png)
 
-<img src="https://i.imgur.com/0BWvZ4s.gif" width="720" alt="Preview2">
 
-<img src="https://i.imgur.com/85y4CEo.gif" width="720" alt="Preview3">
+![Preview1](https://i.imgur.com/qa4mTM4.gif)
+
+
+![Preview2](https://i.imgur.com/0BWvZ4s.gif)
+
+
+![Preview3](https://i.imgur.com/85y4CEo.gif)
 
 ### **Requests**
 You are free to make requests of features to be added, and I might consider doing so.
