@@ -5,12 +5,12 @@ using DebugTools;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("ContinuousHealing")]
+[assembly: AssemblyTitle("DebugTools")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Lacyway")]
-[assembly: AssemblyProduct("ContinuousHealing")]
-[assembly: AssemblyCopyright("Copyright © Lacyway 2024")]
+[assembly: AssemblyProduct("DebugTools")]
+[assembly: AssemblyCopyright("Copyright © Lacyway 2026")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
