@@ -11,6 +11,7 @@ using EFT.Communications;
 using EFT.HealthSystem;
 using EFT.InputSystem;
 using EFT.UI;
+using EFT.Weather;
 using HarmonyLib;
 using TMPro;
 using UnityEngine;
@@ -18,6 +19,9 @@ using UnityEngine.UI;
 
 public sealed class DebugMenu : InputNode
 {
+#pragma warning disable CS0649
+    [SerializeField] Button CloseButton;
+
     [SerializeField] Button GodModeButton;
     [SerializeField] Button DespawnAIButton;
     [SerializeField] Button BringAIButton;
@@ -33,8 +37,22 @@ public sealed class DebugMenu : InputNode
     [SerializeField] TMP_Dropdown DamageLimbDropdown;
     [SerializeField] Button DamageLimbButton;
 
-    private void Awake()
+    [SerializeField] TMP_InputField HourInputField;
+    [SerializeField] TMP_InputField MinuteInputField;
+    [SerializeField] TMP_Dropdown TimeFlowDropdown;
+    [SerializeField] Button SetTimeButton;
+
+    [SerializeField] TMP_Dropdown CloudinessDropdown;
+    [SerializeField] TMP_Dropdown RainTypeDropdown;
+    [SerializeField] TMP_Dropdown WindSpeedDropdown;
+    [SerializeField] TMP_Dropdown FogTypeDropdown;
+    [SerializeField] Button SetWeatherButton;
+#pragma warning restore CS0649
+
+    public void Awake()
     {
+        CloseButton.onClick.AddListener(Toggle);
+
         GodModeButton.onClick.AddListener(ToggleGodMode);
         AddTooltip(GodModeButton.gameObject, "Toggle god mode on/off");
         DespawnAIButton.onClick.AddListener(DespawnAllAI);
@@ -63,18 +81,42 @@ public sealed class DebugMenu : InputNode
         DamageLimbButton.onClick.AddListener(DamageLimb);
         AddTooltip(DamageLimbButton.gameObject, "Destroys the selected limb");
 
+        HourInputField.onValidateInput = ValidateHourCharacter;
+        HourInputField.onEndEdit.AddListener(FormatHourLeadingZero);
+        MinuteInputField.onValidateInput = ValidateMinuteCharacter;
+        MinuteInputField.onEndEdit.AddListener(FormatMinuteLeadingZero);
+        TimeFlowDropdown.ClearOptions();
+        List<string> options3 = [.. Enum.GetNames(typeof(ETimeFlowType))];
+        TimeFlowDropdown.AddOptions(options3);
+        TimeFlowDropdown.SetValueWithoutNotify(4);
+        SetTimeButton.onClick.AddListener(SetTime);
+
+        CloudinessDropdown.ClearOptions();
+        List<string> options4 = [.. Enum.GetNames(typeof(ECloudinessType))];
+        CloudinessDropdown.AddOptions(options4);
+        RainTypeDropdown.ClearOptions();
+        List<string> options5 = [.. Enum.GetNames(typeof(ERainType))];
+        RainTypeDropdown.AddOptions(options5);
+        WindSpeedDropdown.ClearOptions();
+        List<string> options6 = [.. Enum.GetNames(typeof(EWindSpeed))];
+        WindSpeedDropdown.AddOptions(options6);
+        FogTypeDropdown.ClearOptions();
+        List<string> options7 = [.. Enum.GetNames(typeof(EFogType))];
+        FogTypeDropdown.AddOptions(options7);
+        SetWeatherButton.onClick.AddListener(SetWeather);
+
         gameObject.SetActive(false);
 
         DT_Plugin.InputTree.Add(this);
         DT_Plugin.DT_Logger.LogInfo("DebugMenu ready");
     }
 
-    private void OnEnable()
+    public void OnEnable()
     {
         UIEventSystem.Instance.SetTemporaryStatus(true);
     }
 
-    private void OnDisable()
+    public void OnDisable()
     {
         UIEventSystem.Instance.SetTemporaryStatus(false);
     }
@@ -266,6 +308,181 @@ public sealed class DebugMenu : InputNode
         }
 
         LogInfo($"Teleported {count} AI to requester.");
+    }
+
+    private void SetWeather()
+    {
+        if (WeatherController.Instance == null)
+        {
+            LogError("There is no WeatherController");
+            return;
+        }
+
+        var selectedIndex = CloudinessDropdown.value;
+        var selectedText = CloudinessDropdown.options[selectedIndex].text;
+        if (!Enum.TryParse<ECloudinessType>(selectedText, out var cloudinessType))
+        {
+            LogError("Invalid type");
+            return;
+        }
+
+        selectedIndex = RainTypeDropdown.value;
+        selectedText = RainTypeDropdown.options[selectedIndex].text;
+        if (!Enum.TryParse<ERainType>(selectedText, out var rainType))
+        {
+            LogError("Invalid type");
+            return;
+        }
+
+        selectedIndex = WindSpeedDropdown.value;
+        selectedText = WindSpeedDropdown.options[selectedIndex].text;
+        if (!Enum.TryParse<EWindSpeed>(selectedText, out var windSpeed))
+        {
+            LogError("Invalid type");
+            return;
+        }
+
+        selectedIndex = FogTypeDropdown.value;
+        selectedText = FogTypeDropdown.options[selectedIndex].text;
+        if (!Enum.TryParse<EFogType>(selectedText, out var fogType))
+        {
+            LogError("Invalid type");
+            return;
+        }
+
+        var dateTime = DateTimeExtensions.StartOfDay();
+        var dateTime2 = dateTime.AddDays(1);
+
+        var weather = WeatherNode.CreateDefault();
+        var weather2 = WeatherNode.CreateDefault();
+        weather.Cloudness = weather2.Cloudness = cloudinessType.ToValue();
+        weather.Rain = weather2.Rain = rainType.ToValue();
+        weather.Wind = weather2.Wind = windSpeed.ToValue();
+        weather.ScaterringFogDensity = weather2.ScaterringFogDensity = fogType.ToValue();
+        weather.Time = dateTime.Ticks;
+        weather2.Time = dateTime2.Ticks;
+        WeatherNode[] weatherClasses = [weather, weather2];
+        WeatherController.Instance.SetWeatherNodes(weatherClasses);
+    }
+
+    private void SetTime()
+    {
+        if (Singleton<AbstractGame>.Instance is not LocalGame localGame)
+        {
+            LogError("AbstractGame was not LocalGame");
+            return;
+        }
+
+        var gameTime = localGame.GameDateTime;
+        if (gameTime == null)
+        {
+            LogError("There is no GameDateTime to change");
+            return;
+        }
+        var backendTime = Traverse.Create(localGame)
+            .Field<GameDateTime>("_backendDateTime").Value;
+
+        if (!int.TryParse(HourInputField.text, out var hour) || !int.TryParse(MinuteInputField.text, out var minute))
+        {
+            LogError("Invalid hour or minute value");
+            return;
+        }
+
+        var selectedIndex = TimeFlowDropdown.value;
+        var selectedText = TimeFlowDropdown.options[selectedIndex].text;
+        if (!Enum.TryParse<ETimeFlowType>(selectedText, out var timeFlow))
+        {
+            LogError("Invalid type");
+            return;
+        }
+
+        var newTimeFlow = timeFlow.ToTimeFlow();
+        var currentTime = backendTime.StatedGameDateTime;
+        DateTime newTime = new(currentTime.Year, currentTime.Month, currentTime.Day, hour,
+            minute, currentTime.Second, currentTime.Millisecond);
+        gameTime.TimeFactor = newTimeFlow;
+        gameTime.Reset(newTime);
+
+        LogInfo($"Set time of day to: {hour}:{minute} with a timeflow of {selectedText}");
+    }
+
+    private char ValidateHourCharacter(string text, int charIndex, char addedChar)
+    {
+        if (!char.IsDigit(addedChar))
+        {
+            return '\0';
+        }
+
+        var prospectiveText = text.Insert(charIndex, addedChar.ToString());
+
+        if (int.TryParse(prospectiveText, out var parsedValue))
+        {
+            if (parsedValue > 24)
+            {
+                return '\0';
+            }
+
+            if (parsedValue == 24)
+            {
+                MinuteInputField.SetTextWithoutNotify("00");
+            }
+        }
+
+        return addedChar;
+    }
+
+    private char ValidateMinuteCharacter(string text, int charIndex, char addedChar)
+    {
+        if (!char.IsDigit(addedChar))
+        {
+            return '\0';
+        }
+
+        if (int.TryParse(HourInputField.text, out var hourValue) && hourValue == 24)
+        {
+            if (addedChar != '0')
+            {
+                return '\0';
+            }
+        }
+
+        var prospectiveText = text.Insert(charIndex, addedChar.ToString());
+
+        if (int.TryParse(prospectiveText, out var parsedValue))
+        {
+            if (parsedValue > 59)
+            {
+                return '\0';
+            }
+        }
+
+        return addedChar;
+    }
+
+    private void FormatHourLeadingZero(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return;
+        }
+
+        if (int.TryParse(input, out var parsedValue))
+        {
+            HourInputField.SetTextWithoutNotify(parsedValue.ToString("D2"));
+        }
+    }
+
+    private void FormatMinuteLeadingZero(string input)
+    {
+        if (string.IsNullOrEmpty(input))
+        {
+            return;
+        }
+
+        if (int.TryParse(input, out var parsedValue))
+        {
+            MinuteInputField.SetTextWithoutNotify(parsedValue.ToString("D2"));
+        }
     }
 
     public void Heal()
